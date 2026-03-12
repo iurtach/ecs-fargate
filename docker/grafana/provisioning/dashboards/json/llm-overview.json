@@ -1,0 +1,133 @@
+{
+  "title": "LLM Infrastructure Overview",
+  "uid": "llm-overview",
+  "version": 1,
+  "schemaVersion": 38,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Ollama Status",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "targets": [{
+        "datasource": { "uid": "prometheus_ds" },
+        "expr": "up{job=\"ollama\"}",
+        "legendFormat": "Ollama"
+      }],
+      "options": {
+        "colorMode": "background",
+        "thresholds": {
+          "steps": [
+            { "value": 0, "color": "red" },
+            { "value": 1, "color": "green" }
+          ]
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Web Service Status",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "targets": [{
+        "datasource": { "uid": "prometheus_ds" },
+        "expr": "up{job=\"web\"}",
+        "legendFormat": "Web"
+      }],
+      "options": {
+        "colorMode": "background",
+        "thresholds": {
+          "steps": [
+            { "value": 0, "color": "red" },
+            { "value": 1, "color": "green" }
+          ]
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "PostgreSQL Status",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "targets": [{
+        "datasource": { "uid": "prometheus_ds" },
+        "expr": "up{job=\"postgres\"}",
+        "legendFormat": "Postgres"
+      }],
+      "options": {
+        "colorMode": "background",
+        "thresholds": {
+          "steps": [
+            { "value": 0, "color": "red" },
+            { "value": 1, "color": "green" }
+          ]
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "LLM Request Rate (req/s)",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus_ds" },
+          "expr": "rate(llm_requests_total{status=\"success\"}[5m])",
+          "legendFormat": "Success"
+        },
+        {
+          "datasource": { "uid": "prometheus_ds" },
+          "expr": "rate(llm_requests_total{status=\"error\"}[5m])",
+          "legendFormat": "Error"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "LLM Inference Latency (p50/p95/p99)",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus_ds" },
+          "expr": "histogram_quantile(0.50, rate(llm_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p50"
+        },
+        {
+          "datasource": { "uid": "prometheus_ds" },
+          "expr": "histogram_quantile(0.95, rate(llm_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p95"
+        },
+        {
+          "datasource": { "uid": "prometheus_ds" },
+          "expr": "histogram_quantile(0.99, rate(llm_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p99"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Web Service Request Rate",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "targets": [{
+        "datasource": { "uid": "prometheus_ds" },
+        "expr": "sum(rate(web_requests_total[5m])) by (status_code)",
+        "legendFormat": "HTTP {{ status_code }}"
+      }]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "PostgreSQL Active Connections",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "targets": [{
+        "datasource": { "uid": "prometheus_ds" },
+        "expr": "pg_stat_activity_count{datname!=\"\"}",
+        "legendFormat": "{{ datname }}"
+      }]
+    }
+  ]
+}

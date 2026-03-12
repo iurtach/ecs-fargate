@@ -1,0 +1,9 @@
+variable "project_name"        { type = string }
+variable "environment"         { type = string }
+variable "ecs_cluster_name"    { type = string }
+variable "ollama_service_name" { type = string }
+variable "ollama_min_capacity" { type = number }
+variable "ollama_max_capacity" { type = number }
+variable "web_service_name"    { type = string }
+variable "web_min_capacity"    { type = number }
+variable "web_max_capacity"    { type = number }

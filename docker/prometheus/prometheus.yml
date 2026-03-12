@@ -1,0 +1,37 @@
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'ecs-fargate'
+    environment: 'prod'
+
+rule_files:
+  - /etc/prometheus/alerting_rules.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['localhost:9093']
+      path_prefix: /alertmanager
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: /prometheus/metrics
+
+  - job_name: 'web'
+    dns_sd_configs:
+      - names: ['web.ecs-fargate.local']
+        type: A
+        port: 8080
+        refresh_interval: 30s
+    metrics_path: /metrics
+
+  - job_name: 'grafana'
+    dns_sd_configs:
+      - names: ['grafana.ecs-fargate.local']
+        type: A
+        port: 3000
+        refresh_interval: 30s
+    metrics_path: /grafana/metrics

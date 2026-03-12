@@ -1,0 +1,78 @@
+groups:
+  - name: ecs_services
+    interval: 30s
+    rules:
+      # ─── Container Health ──────────────────────────────
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+          channel: telegram
+        annotations:
+          summary: "Service {{ $labels.job }} is DOWN"
+          description: "Instance {{ $labels.instance }} has been unreachable for more than 2 minutes."
+
+      # ─── Ollama Performance ───────────────────────────
+      - alert: OllamaHighLatency
+        expr: histogram_quantile(0.95, rate(ollama_request_duration_seconds_bucket[5m])) > 30
+        for: 5m
+        labels:
+          severity: warning
+          channel: telegram
+        annotations:
+          summary: "Ollama p95 latency > 30s"
+          description: "LLM inference latency is degraded. p95 = {{ $value | humanizeDuration }}"
+
+      - alert: OllamaNoRequests
+        expr: rate(ollama_requests_total[10m]) == 0
+        for: 15m
+        labels:
+          severity: info
+          channel: telegram
+        annotations:
+          summary: "Ollama has received no requests in 15 minutes"
+
+      # ─── Web Service ──────────────────────────────────
+      - alert: WebHighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          channel: telegram
+        annotations:
+          summary: "Web service error rate > 5%"
+          description: "Error rate is {{ $value | humanizePercentage }}"
+
+      # ─── Memory Pressure ──────────────────────────────
+      - alert: HighMemoryUsage
+        expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          channel: telegram
+        annotations:
+          summary: "Container {{ $labels.container }} memory > 90%"
+          description: "Container is approaching memory limit. Usage: {{ $value | humanizePercentage }}"
+
+  - name: database
+    rules:
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          channel: telegram
+        annotations:
+          summary: "PostgreSQL is DOWN"
+          description: "The PostgreSQL database is unreachable."
+
+      - alert: PostgresHighConnections
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          channel: telegram
+        annotations:
+          summary: "PostgreSQL connections > 80% of max"
+          description: "Connection usage: {{ $value | humanizePercentage }}"

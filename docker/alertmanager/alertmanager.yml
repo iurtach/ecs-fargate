@@ -1,0 +1,96 @@
+# ============================================================
+# Alertmanager Configuration — Telegram receiver
+#
+# TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are injected
+# as environment variables via ECS Secrets Manager integration.
+# Alertmanager supports env var interpolation with $VAR syntax.
+# ============================================================
+
+global:
+  resolve_timeout: 5m
+
+# ── Templates ─────────────────────────────────────────────────
+templates:
+- /etc/alertmanager/templates/*.tmpl
+
+# ── Routing tree ──────────────────────────────────────────────
+route:
+  group_by: [ 'alertname', 'job' ]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: telegram-default
+
+  routes:
+  # Critical alerts: immediate, no grouping delay
+  - matchers:
+    - severity = critical
+    group_wait: 10s
+    repeat_interval: 1h
+    receiver: telegram-critical
+
+  # Info/low severity: batch together
+  - matchers:
+    - severity = info
+    group_wait: 5m
+    repeat_interval: 24h
+    receiver: telegram-default
+
+  # LLM-specific alerts
+  - matchers:
+    - job = ollama
+    receiver: telegram-llm
+
+# ── Inhibition rules ──────────────────────────────────────────
+inhibit_rules:
+- source_matchers:
+  - severity = critical
+  target_matchers:
+  - severity = warning
+  equal: [ 'alertname', 'job' ]
+
+# ── Receivers ─────────────────────────────────────────────────
+receivers:
+
+- name: telegram-default
+  telegram_configs:
+  - bot_token: $TELEGRAM_BOT_TOKEN
+    chat_id: 329413786
+    parse_mode: HTML
+    message: |
+      {{ range .Alerts }}
+      <b>{{ .Status | toUpper }} — {{ .Labels.alertname }}</b>
+      📊 Job: <code>{{ .Labels.job }}</code>
+      🔔 Severity: <code>{{ .Labels.severity }}</code>
+      📝 {{ .Annotations.summary }}
+      {{ if .Annotations.description }}💬 {{ .Annotations.description }}{{ end }}
+      {{ if eq .Status "firing" }}🔴 Started: {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}{{ else }}✅ Resolved: {{ .EndsAt.Format "2006-01-02 15:04:05 UTC" }}{{ end }}
+      {{ end }}
+
+- name: telegram-critical
+  telegram_configs:
+  - bot_token: $TELEGRAM_BOT_TOKEN
+    chat_id: 329413786
+    parse_mode: HTML
+    message: |
+      🚨 <b>CRITICAL ALERT</b>
+      {{ range .Alerts }}
+      <b>{{ .Labels.alertname }}</b>
+      📊 Job: <code>{{ .Labels.job }}</code>
+      📝 {{ .Annotations.summary }}
+      {{ if .Annotations.description }}💬 {{ .Annotations.description }}{{ end }}
+      {{ if eq .Status "firing" }}⏰ {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}{{ end }}
+      {{ end }}
+
+- name: telegram-llm
+  telegram_configs:
+  - bot_token: $TELEGRAM_BOT_TOKEN
+    chat_id: 329413786
+    parse_mode: HTML
+    message: |
+      🤖 <b>LLM ALERT — {{ .GroupLabels.alertname }}</b>
+      {{ range .Alerts }}
+      Severity: {{ .Labels.severity }}
+      {{ .Annotations.summary }}
+      {{ .Annotations.description }}
+      {{ end }}

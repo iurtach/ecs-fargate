@@ -1,0 +1,122 @@
+# ============================================================
+# Prometheus Alerting Rules
+# ============================================================
+groups:
+
+  - name: container_health
+    rules:
+      - alert: ContainerHighCPU
+        expr: rate(container_cpu_usage_seconds_total[5m]) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU on {{ $labels.container_name }}"
+          description: "Container {{ $labels.container_name }} CPU usage is {{ $value | printf \"%.1f\" }}%"
+
+      - alert: ContainerHighMemory
+        expr: container_memory_usage_bytes / container_spec_memory_limit_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High memory on {{ $labels.container_name }}"
+          description: "Container {{ $labels.container_name }} memory at {{ $value | printf \"%.1f\" }}%"
+
+  - name: llm_service
+    rules:
+      - alert: OllamaDown
+        expr: up{job="ollama"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Ollama LLM service is DOWN"
+          description: "Ollama has been unreachable for more than 2 minutes."
+
+      - alert: OllamaHighLatency
+        expr: histogram_quantile(0.95, rate(llm_request_duration_seconds_bucket[5m])) > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Ollama response latency is high"
+          description: "95th percentile LLM latency is {{ $value | printf \"%.0f\" }}s (threshold: 30s)"
+
+      - alert: OllamaHighErrorRate
+        expr: rate(llm_requests_total{status="error"}[5m]) / rate(llm_requests_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Ollama error rate > 10%"
+          description: "LLM error rate is {{ $value | humanizePercentage }}"
+
+  - name: web_service
+    rules:
+      - alert: WebServiceDown
+        expr: up{job="web"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Web frontend is DOWN"
+          description: "Web service has been unreachable for more than 2 minutes."
+
+      - alert: WebHighRequestRate
+        expr: rate(web_requests_total[5m]) > 500
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "High web traffic — consider scaling"
+          description: "Request rate is {{ $value | printf \"%.0f\" }} req/s"
+
+  - name: database
+    rules:
+      - alert: PostgresDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is DOWN"
+          description: "PostgreSQL exporter is unreachable — database may be down."
+
+      - alert: PostgresHighConnections
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL connection count high"
+          description: "{{ $value }} active connections (threshold: 80)"
+
+      - alert: PostgresSlowQueries
+        expr: rate(pg_stat_activity_max_tx_duration{datname!=""}[5m]) > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Long-running PostgreSQL transactions detected"
+          description: "Max transaction duration: {{ $value | printf \"%.0f\" }}s"
+
+  - name: monitoring_stack
+    rules:
+      - alert: GrafanaDown
+        expr: up{job="grafana"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Grafana is DOWN"
+          description: "Grafana dashboard is unreachable."
+
+      - alert: PrometheusHighTSDBSize
+        expr: prometheus_tsdb_head_chunks > 5000000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus TSDB is very large"
+          description: "{{ $value | humanize }} chunks in head TSDB"
