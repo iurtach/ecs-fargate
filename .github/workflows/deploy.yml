@@ -44,38 +44,25 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/main'
     permissions:
-      id-token: write
       contents: read
 
     strategy:
       matrix:
         service: [ollama, web, prometheus, grafana, alertmanager]
 
-    outputs:
-      image-tag: ${{ steps.meta.outputs.version }}
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials via OIDC
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ env.PROJECT_NAME }}-github-actions
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Generate image metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/${{ matrix.service }}
-          tags: |
-            type=sha,prefix=,format=short
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=semver,pattern={{version}}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -85,8 +72,9 @@ jobs:
         with:
           context: ./docker/${{ matrix.service }}
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/${{ matrix.service }}:latest
+            ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/${{ matrix.service }}:${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to:   type=gha,mode=max,scope=${{ matrix.service }}
 
@@ -99,7 +87,7 @@ jobs:
           severity: CRITICAL,HIGH
 
   # ───────────────────────────────────────────────────────
-  # 3. Deploy updated task definitions to ECS
+  # 3. Deploy updated services to ECS
   # ───────────────────────────────────────────────────────
   deploy:
     name: Deploy to ECS
@@ -107,63 +95,39 @@ jobs:
     needs: build-and-push
     if: github.ref == 'refs/heads/main'
     permissions:
-      id-token: write
       contents: read
-    environment: production
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure AWS credentials via OIDC
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ env.PROJECT_NAME }}-github-actions
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: ecr-login
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Force new deployment for all services
+        run: |
+          CLUSTER="${{ env.PROJECT_NAME }}-prod-cluster"
+          for SERVICE in ollama web prometheus grafana; do
+            echo "Deploying $SERVICE..."
+            aws ecs update-service \
+              --cluster "$CLUSTER" \
+              --service "${{ env.PROJECT_NAME }}-prod-${SERVICE}" \
+              --force-new-deployment \
+              --region ${{ env.AWS_REGION }} \
+              --no-cli-pager
+          done
 
-      # ── Update each service with the new image ──────────
-      - name: Deploy Ollama
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: ${{ env.PROJECT_NAME }}-prod-ollama
-          service: ${{ env.PROJECT_NAME }}-prod-ollama
-          cluster: ${{ env.PROJECT_NAME }}-prod-cluster
-          container-name: ollama
-          image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/ollama:latest
-          wait-for-service-stability: true
-
-      - name: Deploy Web
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: ${{ env.PROJECT_NAME }}-prod-web
-          service: ${{ env.PROJECT_NAME }}-prod-web
-          cluster: ${{ env.PROJECT_NAME }}-prod-cluster
-          container-name: web
-          image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/web:latest
-          wait-for-service-stability: true
-
-      - name: Deploy Prometheus
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: ${{ env.PROJECT_NAME }}-prod-prometheus
-          service: ${{ env.PROJECT_NAME }}-prod-prometheus
-          cluster: ${{ env.PROJECT_NAME }}-prod-cluster
-          container-name: prometheus
-          image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/prometheus:latest
-          wait-for-service-stability: true
-
-      - name: Deploy Grafana
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: ${{ env.PROJECT_NAME }}-prod-grafana
-          service: ${{ env.PROJECT_NAME }}-prod-grafana
-          cluster: ${{ env.PROJECT_NAME }}-prod-cluster
-          container-name: grafana
-          image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/grafana:latest
-          wait-for-service-stability: true
+      - name: Wait for services to stabilize
+        run: |
+          CLUSTER="${{ env.PROJECT_NAME }}-prod-cluster"
+          for SERVICE in ollama web prometheus grafana; do
+            echo "Waiting for $SERVICE..."
+            aws ecs wait services-stable \
+              --cluster "$CLUSTER" \
+              --services "${{ env.PROJECT_NAME }}-prod-${SERVICE}" \
+              --region ${{ env.AWS_REGION }}
+          done
 
       - name: Notify Telegram on success
         if: success()
@@ -198,7 +162,6 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     permissions:
-      id-token: write
       contents: read
       pull-requests: write
 
@@ -208,7 +171,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ env.PROJECT_NAME }}-github-actions
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
       - uses: hashicorp/setup-terraform@v3
