@@ -9,12 +9,12 @@ resource "aws_ecs_task_definition" "ollama" {
   task_role_arn            = var.ollama_task_role_arn
 
   container_definitions = jsonencode([{
-    name      = "ollama"
-    image     = "${var.ollama_repository_url}:${var.ollama_image_tag}"
-    essential = true
+    name         = "ollama"
+    image        = "${var.ollama_repository_url}:${var.ollama_image_tag}"
+    essential    = true
     portMappings = [{ containerPort = 11434, hostPort = 11434, protocol = "tcp" }]
     environment = [
-      { name = "OLLAMA_HOST",    value = "0.0.0.0" },
+      { name = "OLLAMA_HOST", value = "0.0.0.0" },
       { name = "OLLAMA_ORIGINS", value = "*" }
     ]
     logConfiguration = {
@@ -48,17 +48,17 @@ resource "aws_ecs_task_definition" "web" {
   task_role_arn            = var.web_task_role_arn
 
   container_definitions = jsonencode([{
-    name      = "web"
-    image     = "${var.web_repository_url}:${var.web_image_tag}"
-    essential = true
+    name         = "web"
+    image        = "${var.web_repository_url}:${var.web_image_tag}"
+    essential    = true
     portMappings = [{ containerPort = 8080, hostPort = 8080, protocol = "tcp" }]
     environment = [
       { name = "OLLAMA_API_URL", value = "http://ollama.${var.service_discovery_namespace_name}:11434" },
-      { name = "DB_HOST",        value = var.db_host },
-      { name = "DB_PORT",        value = tostring(var.db_port) },
-      { name = "DB_NAME",        value = var.db_name },
-      { name = "DB_USER",        value = var.db_username },
-      { name = "PORT",           value = "8080" }
+      { name = "DB_HOST", value = var.db_host },
+      { name = "DB_PORT", value = tostring(var.db_port) },
+      { name = "DB_NAME", value = var.db_name },
+      { name = "DB_USER", value = var.db_username },
+      { name = "PORT", value = "8080" }
     ]
     secrets = [{ name = "DB_PASSWORD", valueFrom = var.db_password_secret_arn }]
     logConfiguration = {
@@ -93,9 +93,9 @@ resource "aws_ecs_task_definition" "prometheus" {
 
   container_definitions = jsonencode([
     {
-      name      = "prometheus"
-      image     = "${var.prometheus_repository_url}:${var.prometheus_image_tag}"
-      essential = true
+      name         = "prometheus"
+      image        = "${var.prometheus_repository_url}:${var.prometheus_image_tag}"
+      essential    = true
       portMappings = [{ containerPort = 9090, hostPort = 9090, protocol = "tcp" }]
       command = [
         "--config.file=/etc/prometheus/prometheus.yml",
@@ -106,10 +106,10 @@ resource "aws_ecs_task_definition" "prometheus" {
         "--web.route-prefix=/prometheus"
       ]
       environment = [
-        { name = "OLLAMA_HOST",  value = "ollama.${var.service_discovery_namespace_name}" },
-        { name = "WEB_HOST",     value = "web.${var.service_discovery_namespace_name}" },
+        { name = "OLLAMA_HOST", value = "ollama.${var.service_discovery_namespace_name}" },
+        { name = "WEB_HOST", value = "web.${var.service_discovery_namespace_name}" },
         { name = "GRAFANA_HOST", value = "grafana.${var.service_discovery_namespace_name}" },
-        { name = "DB_HOST",      value = var.db_host }
+        { name = "DB_HOST", value = var.db_host }
       ]
       mountPoints = [{
         sourceVolume  = "prometheus-data"
@@ -133,12 +133,12 @@ resource "aws_ecs_task_definition" "prometheus" {
       }
     },
     {
-      name      = "alertmanager"
-      image     = "${var.alertmanager_repository_url}:${var.alertmanager_image_tag}"
-      essential = false
+      name         = "alertmanager"
+      image        = "${var.alertmanager_repository_url}:${var.alertmanager_image_tag}"
+      essential    = false
       portMappings = [{ containerPort = 9093, hostPort = 9093, protocol = "tcp" }]
-      environment = [{ name = "TELEGRAM_CHAT_ID", value = var.telegram_chat_id }]
-      secrets     = [{ name = "TELEGRAM_BOT_TOKEN", valueFrom = var.telegram_secret_arn }]
+      environment  = [{ name = "TELEGRAM_CHAT_ID", value = var.telegram_chat_id }]
+      secrets      = [{ name = "TELEGRAM_BOT_TOKEN", valueFrom = var.telegram_secret_arn }]
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -176,22 +176,22 @@ resource "aws_ecs_task_definition" "grafana" {
   task_role_arn            = var.monitoring_task_role_arn
 
   container_definitions = jsonencode([{
-    name      = "grafana"
-    image     = "${var.grafana_repository_url}:${var.grafana_image_tag}"
-    essential = true
+    name         = "grafana"
+    image        = "${var.grafana_repository_url}:${var.grafana_image_tag}"
+    essential    = true
     portMappings = [{ containerPort = 3000, hostPort = 3000, protocol = "tcp" }]
     environment = [
-      { name = "GF_SERVER_ROOT_URL",            value = "%(protocol)s://%(domain)s/grafana/" },
+      { name = "GF_SERVER_ROOT_URL", value = "%(protocol)s://%(domain)s/grafana/" },
       { name = "GF_SERVER_SERVE_FROM_SUB_PATH", value = "true" },
-      { name = "GF_AUTH_ANONYMOUS_ENABLED",     value = "false" },
-      { name = "GF_SECURITY_ADMIN_USER",        value = "admin" },
-      { name = "PROMETHEUS_URL",                value = "http://prometheus.${var.service_discovery_namespace_name}:9090/prometheus" },
-      { name = "GF_DATABASE_TYPE",              value = "postgres" },
-      { name = "GF_DATABASE_HOST",              value = "${var.db_host}:${var.db_port}" },
-      { name = "GF_DATABASE_NAME",              value = "grafana" },
-      { name = "GF_DATABASE_USER",              value = "grafana" },
-      { name = "GF_DATABASE_SSL_MODE",          value = "disable" },
-      { name = "GF_INSTALL_PLUGINS",            value = "" }
+      { name = "GF_AUTH_ANONYMOUS_ENABLED", value = "false" },
+      { name = "GF_SECURITY_ADMIN_USER", value = "admin" },
+      { name = "PROMETHEUS_URL", value = "http://prometheus.${var.service_discovery_namespace_name}:9090/prometheus" },
+      { name = "GF_DATABASE_TYPE", value = "postgres" },
+      { name = "GF_DATABASE_HOST", value = "${var.db_host}:${var.db_port}" },
+      { name = "GF_DATABASE_NAME", value = "grafana" },
+      { name = "GF_DATABASE_USER", value = "grafana" },
+      { name = "GF_DATABASE_SSL_MODE", value = "disable" },
+      { name = "GF_INSTALL_PLUGINS", value = "" }
     ]
     secrets = [
       { name = "GF_SECURITY_ADMIN_PASSWORD", valueFrom = var.grafana_password_secret_arn },

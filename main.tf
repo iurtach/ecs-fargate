@@ -96,14 +96,14 @@ module "ecr" {
 }
 
 module "iam_ecs" {
-  source                      = "./modules/iam_ecs"
-  project_name                = var.project_name
-  environment                 = var.environment
-  db_password_secret_arn      = aws_secretsmanager_secret.db_password.arn
-  telegram_secret_arn         = aws_secretsmanager_secret.telegram_bot_token.arn
-  grafana_password_secret_arn = aws_secretsmanager_secret.grafana_admin_password.arn
+  source                         = "./modules/iam_ecs"
+  project_name                   = var.project_name
+  environment                    = var.environment
+  db_password_secret_arn         = aws_secretsmanager_secret.db_password.arn
+  telegram_secret_arn            = aws_secretsmanager_secret.telegram_bot_token.arn
+  grafana_password_secret_arn    = aws_secretsmanager_secret.grafana_admin_password.arn
   grafana_db_password_secret_arn = aws_secretsmanager_secret.grafana_db_password.arn
-  log_group_arn               = aws_cloudwatch_log_group.ecs.arn
+  log_group_arn                  = aws_cloudwatch_log_group.ecs.arn
 }
 
 module "efs" {
@@ -193,7 +193,7 @@ module "ecs" {
   telegram_secret_arn = aws_secretsmanager_secret.telegram_bot_token.arn
 
   # Grafana
-  grafana_password_secret_arn = aws_secretsmanager_secret.grafana_admin_password.arn
+  grafana_password_secret_arn    = aws_secretsmanager_secret.grafana_admin_password.arn
   grafana_db_password_secret_arn = aws_secretsmanager_secret.grafana_db_password.arn
 
   # Logging

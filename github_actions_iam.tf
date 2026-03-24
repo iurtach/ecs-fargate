@@ -4,8 +4,8 @@
 
 # GitHub's OIDC provider (one per AWS account)
 resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
+  url            = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com"]
   # GitHub's current OIDC thumbprints
   thumbprint_list = [
     "6938fd4d98bab03faadb97b34396831e3780aea1",
@@ -40,8 +40,8 @@ resource "aws_iam_role" "github_actions" {
 data "aws_iam_policy_document" "github_actions" {
   # ECR — push images
   statement {
-    sid = "ECRAuth"
-    actions = ["ecr:GetAuthorizationToken"]
+    sid       = "ECRAuth"
+    actions   = ["ecr:GetAuthorizationToken"]
     resources = ["*"]
   }
 
@@ -75,8 +75,8 @@ data "aws_iam_policy_document" "github_actions" {
 
   # IAM PassRole — required when registering task definitions
   statement {
-    sid     = "IAMPassRole"
-    actions = ["iam:PassRole"]
+    sid       = "IAMPassRole"
+    actions   = ["iam:PassRole"]
     resources = ["*"]
     condition {
       test     = "StringLike"
@@ -99,8 +99,8 @@ data "aws_iam_policy_document" "github_actions" {
   }
 
   statement {
-    sid     = "DynamoDBLockRead"
-    actions = ["dynamodb:GetItem", "dynamodb:DescribeTable"]
+    sid       = "DynamoDBLockRead"
+    actions   = ["dynamodb:GetItem", "dynamodb:DescribeTable"]
     resources = ["arn:aws:dynamodb:${var.aws_region}:*:table/terraform-locks"]
   }
 }

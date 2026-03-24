@@ -1,23 +1,23 @@
 variable "project_name" { type = string }
-variable "environment"  { type = string }
-variable "aws_region"   { type = string }
+variable "environment" { type = string }
+variable "aws_region" { type = string }
 
-variable "vpc_id"             { type = string }
+variable "vpc_id" { type = string }
 variable "private_subnet_ids" { type = list(string) }
-variable "alb_sg_id"          { type = string }
+variable "alb_sg_id" { type = string }
 
-variable "ollama_target_group_arn"     { type = string }
-variable "web_target_group_arn"        { type = string }
-variable "grafana_target_group_arn"    { type = string }
+variable "ollama_target_group_arn" { type = string }
+variable "web_target_group_arn" { type = string }
+variable "grafana_target_group_arn" { type = string }
 variable "prometheus_target_group_arn" { type = string }
 
-variable "service_discovery_namespace_id"   { type = string }
+variable "service_discovery_namespace_id" { type = string }
 variable "service_discovery_namespace_name" { type = string }
 
-variable "ollama_repository_url"       { type = string }
-variable "web_repository_url"          { type = string }
-variable "prometheus_repository_url"   { type = string }
-variable "grafana_repository_url"      { type = string }
+variable "ollama_repository_url" { type = string }
+variable "web_repository_url" { type = string }
+variable "prometheus_repository_url" { type = string }
+variable "grafana_repository_url" { type = string }
 variable "alertmanager_repository_url" { type = string }
 
 variable "ollama_image_tag" {
@@ -41,15 +41,15 @@ variable "alertmanager_image_tag" {
   default = "latest"
 }
 
-variable "task_execution_role_arn"  { type = string }
-variable "ollama_task_role_arn"     { type = string }
-variable "web_task_role_arn"        { type = string }
+variable "task_execution_role_arn" { type = string }
+variable "ollama_task_role_arn" { type = string }
+variable "web_task_role_arn" { type = string }
 variable "monitoring_task_role_arn" { type = string }
 
-variable "prometheus_efs_id"              { type = string }
+variable "prometheus_efs_id" { type = string }
 variable "prometheus_efs_access_point_id" { type = string }
-variable "grafana_efs_id"                 { type = string }
-variable "grafana_efs_access_point_id"    { type = string }
+variable "grafana_efs_id" { type = string }
+variable "grafana_efs_access_point_id" { type = string }
 
 variable "ollama_cpu" {
   type    = number
@@ -84,13 +84,13 @@ variable "grafana_memory" {
   default = 1024
 }
 
-variable "db_host"                { type = string }
-variable "db_port"                { type = number }
-variable "db_name"                { type = string }
-variable "db_username"            { type = string }
+variable "db_host" { type = string }
+variable "db_port" { type = number }
+variable "db_name" { type = string }
+variable "db_username" { type = string }
 variable "db_password_secret_arn" { type = string }
 
-variable "telegram_chat_id"    { type = string }
+variable "telegram_chat_id" { type = string }
 variable "telegram_secret_arn" { type = string }
 
 variable "grafana_password_secret_arn" { type = string }

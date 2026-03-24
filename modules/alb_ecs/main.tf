@@ -44,7 +44,7 @@ resource "aws_lb" "this" {
   subnets            = var.public_subnet_ids
 
   enable_deletion_protection = false
-  tags = { Name = "${var.project_name}-${var.environment}-alb" }
+  tags                       = { Name = "${var.project_name}-${var.environment}-alb" }
 }
 
 # ── Target Groups ─────────────────────────────────────────────

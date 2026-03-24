@@ -28,7 +28,7 @@ resource "aws_efs_access_point" "prometheus" {
   file_system_id = aws_efs_file_system.monitoring.id
 
   posix_user {
-    gid = 65534  # nobody
+    gid = 65534 # nobody
     uid = 65534
   }
 
@@ -48,7 +48,7 @@ resource "aws_efs_access_point" "grafana" {
   file_system_id = aws_efs_file_system.monitoring.id
 
   posix_user {
-    gid = 472  # grafana container gid
+    gid = 472 # grafana container gid
     uid = 472
   }
 

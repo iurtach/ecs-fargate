@@ -25,7 +25,7 @@ resource "aws_iam_role_policy_attachment" "task_execution_managed" {
 
 data "aws_iam_policy_document" "task_execution_extra" {
   statement {
-    sid     = "ECRAuth"
+    sid = "ECRAuth"
     actions = [
       "ecr:GetAuthorizationToken",
       "ecr:BatchCheckLayerAvailability",
@@ -36,8 +36,8 @@ data "aws_iam_policy_document" "task_execution_extra" {
   }
 
   statement {
-    sid     = "CloudWatchLogs"
-    actions = ["logs:CreateLogStream", "logs:PutLogEvents", "logs:DescribeLogGroups", "logs:DescribeLogStreams"]
+    sid       = "CloudWatchLogs"
+    actions   = ["logs:CreateLogStream", "logs:PutLogEvents", "logs:DescribeLogGroups", "logs:DescribeLogStreams"]
     resources = ["${var.log_group_arn}:*"]
   }
 
@@ -71,8 +71,8 @@ resource "aws_iam_role" "ollama_task" {
 
 data "aws_iam_policy_document" "ollama_task" {
   statement {
-    sid     = "CloudWatchMetrics"
-    actions = ["cloudwatch:PutMetricData"]
+    sid       = "CloudWatchMetrics"
+    actions   = ["cloudwatch:PutMetricData"]
     resources = ["*"]
     condition {
       test     = "StringEquals"
@@ -99,7 +99,7 @@ resource "aws_iam_role" "web_task" {
 }
 
 resource "aws_iam_policy" "web_task" {
-  name   = "${var.project_name}-${var.environment}-web-task"
+  name = "${var.project_name}-${var.environment}-web-task"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -128,7 +128,7 @@ resource "aws_iam_role_policy_attachment" "monitoring_ec2_read" {
 
 data "aws_iam_policy_document" "monitoring_task" {
   statement {
-    sid     = "CloudWatchRead"
+    sid = "CloudWatchRead"
     actions = [
       "cloudwatch:ListMetrics", "cloudwatch:GetMetricData",
       "cloudwatch:GetMetricStatistics", "cloudwatch:DescribeAlarms",
@@ -137,7 +137,7 @@ data "aws_iam_policy_document" "monitoring_task" {
   }
 
   statement {
-    sid     = "ECSDescribe"
+    sid = "ECSDescribe"
     actions = [
       "ecs:DescribeClusters", "ecs:DescribeTasks",
       "ecs:ListTasks", "ecs:ListServices", "ecs:DescribeServices",
