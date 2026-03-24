@@ -17,7 +17,7 @@ resource "aws_ecs_service" "ollama" {
   network_configuration {
     subnets          = var.private_subnet_ids
     security_groups  = [aws_security_group.ecs_tasks.id]
-    assign_public_ip = false
+    assign_public_ip = true
   }
 
   load_balancer {
@@ -54,7 +54,7 @@ resource "aws_ecs_service" "web" {
   network_configuration {
     subnets          = var.private_subnet_ids
     security_groups  = [aws_security_group.ecs_tasks.id]
-    assign_public_ip = false
+    assign_public_ip = true
   }
 
   load_balancer {
@@ -91,7 +91,7 @@ resource "aws_ecs_service" "prometheus" {
   network_configuration {
     subnets          = [var.private_subnet_ids[0]]
     security_groups  = [aws_security_group.ecs_tasks.id]
-    assign_public_ip = false
+    assign_public_ip = true
   }
 
   load_balancer {
@@ -128,7 +128,7 @@ resource "aws_ecs_service" "grafana" {
   network_configuration {
     subnets          = [var.private_subnet_ids[0]]
     security_groups  = [aws_security_group.ecs_tasks.id]
-    assign_public_ip = false
+    assign_public_ip = true
   }
 
   load_balancer {
