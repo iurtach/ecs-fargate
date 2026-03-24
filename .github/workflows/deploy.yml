@@ -118,20 +118,6 @@ jobs:
               --no-cli-pager
           done
 
-      - name: Wait for services to stabilize
-        run: |
-          CLUSTER="${{ env.PROJECT_NAME }}-prod-cluster"
-          # Skip ollama — it downloads a large model and can take 30+ min on first start
-          for SERVICE in web prometheus grafana; do
-            echo "Waiting for $SERVICE..."
-            aws ecs wait services-stable \
-              --cluster "$CLUSTER" \
-              --services "${{ env.PROJECT_NAME }}-prod-${SERVICE}" \
-              --region ${{ env.AWS_REGION }} \
-              --max-attempts 120
-          done
-          echo "Note: ollama deployment triggered but not waited on (large model download)"
-
       - name: Notify Telegram on success
         if: success()
         run: |
