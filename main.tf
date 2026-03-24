@@ -8,14 +8,13 @@ terraform {
     }
   }
 
-  # Розкоментуй якщо використовуєш remote state (рекомендовано для prod)
-  # backend "s3" {
-  #   bucket         = "your-tfstate-bucket"
-  #   key            = "ecs-fargate/terraform.tfstate"
-  #   region         = "us-east-1"
-  #   dynamodb_table = "terraform-locks"
-  #   encrypt        = true
-  # }
+  backend "s3" {
+    bucket         = "ecs-fargate-terraform-state-745247897380"
+    key            = "prod/terraform.tfstate"
+    region         = "eu-north-1"
+    dynamodb_table = "terraform-locks"
+    encrypt        = true
+  }
 }
 
 provider "aws" {
@@ -71,6 +70,16 @@ resource "aws_secretsmanager_secret_version" "grafana_admin_password" {
   secret_string = var.grafana_admin_password
 }
 
+resource "aws_secretsmanager_secret" "grafana_db_password" {
+  name                    = "/${var.project_name}/${var.environment}/grafana-db-password"
+  recovery_window_in_days = 7
+}
+
+resource "aws_secretsmanager_secret_version" "grafana_db_password" {
+  secret_id     = aws_secretsmanager_secret.grafana_db_password.id
+  secret_string = var.grafana_db_password
+}
+
 # ── AWS Cloud Map (Service Discovery) ─────────────────────────
 resource "aws_service_discovery_private_dns_namespace" "this" {
   name        = "${var.project_name}.local"
@@ -93,6 +102,7 @@ module "iam_ecs" {
   db_password_secret_arn      = aws_secretsmanager_secret.db_password.arn
   telegram_secret_arn         = aws_secretsmanager_secret.telegram_bot_token.arn
   grafana_password_secret_arn = aws_secretsmanager_secret.grafana_admin_password.arn
+  grafana_db_password_secret_arn = aws_secretsmanager_secret.grafana_db_password.arn
   log_group_arn               = aws_cloudwatch_log_group.ecs.arn
 }
 
@@ -184,6 +194,7 @@ module "ecs" {
 
   # Grafana
   grafana_password_secret_arn = aws_secretsmanager_secret.grafana_admin_password.arn
+  grafana_db_password_secret_arn = aws_secretsmanager_secret.grafana_db_password.arn
 
   # Logging
   log_group_name = aws_cloudwatch_log_group.ecs.name

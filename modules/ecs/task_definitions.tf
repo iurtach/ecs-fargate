@@ -185,9 +185,18 @@ resource "aws_ecs_task_definition" "grafana" {
       { name = "GF_SERVER_SERVE_FROM_SUB_PATH", value = "true" },
       { name = "GF_AUTH_ANONYMOUS_ENABLED",     value = "false" },
       { name = "GF_SECURITY_ADMIN_USER",        value = "admin" },
-      { name = "PROMETHEUS_URL",                value = "http://prometheus.${var.service_discovery_namespace_name}:9090/prometheus" }
+      { name = "PROMETHEUS_URL",                value = "http://prometheus.${var.service_discovery_namespace_name}:9090/prometheus" },
+      { name = "GF_DATABASE_TYPE",              value = "postgres" },
+      { name = "GF_DATABASE_HOST",              value = "${var.db_host}:${var.db_port}" },
+      { name = "GF_DATABASE_NAME",              value = "grafana" },
+      { name = "GF_DATABASE_USER",              value = "grafana" },
+      { name = "GF_DATABASE_SSL_MODE",          value = "disable" },
+      { name = "GF_INSTALL_PLUGINS",            value = "" }
     ]
-    secrets = [{ name = "GF_SECURITY_ADMIN_PASSWORD", valueFrom = var.grafana_password_secret_arn }]
+    secrets = [
+      { name = "GF_SECURITY_ADMIN_PASSWORD", valueFrom = var.grafana_password_secret_arn },
+      { name = "GF_DATABASE_PASSWORD", valueFrom = var.grafana_db_password_secret_arn }
+    ]
     mountPoints = [{
       sourceVolume  = "grafana-data"
       containerPath = "/var/lib/grafana"

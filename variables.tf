@@ -99,6 +99,12 @@ variable "grafana_admin_password" {
   default     = "ChangeMe123!"
 }
 
+variable "grafana_db_password" {
+  description = "Grafana PostgreSQL password — stored in Secrets Manager"
+  type        = string
+  sensitive   = true
+}
+
 # ── Container image tags ──────────────────────────────────────
 variable "ollama_image_tag" {
   description = "Ollama ECR image tag"
@@ -198,6 +204,13 @@ variable "web_min_capacity" {
 variable "web_max_capacity" {
   type    = number
   default = 5
+}
+
+# ── GitHub Actions OIDC ───────────────────────────────────────
+variable "github_repo" {
+  description = "GitHub repository in owner/repo format (e.g. iurtach/ecs-fargate)"
+  type        = string
+  default     = "iurtach/ecs-fargate"
 }
 
 # ── Common tags ───────────────────────────────────────────────

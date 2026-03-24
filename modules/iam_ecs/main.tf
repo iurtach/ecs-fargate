@@ -48,6 +48,7 @@ data "aws_iam_policy_document" "task_execution_extra" {
       var.db_password_secret_arn,
       var.telegram_secret_arn,
       var.grafana_password_secret_arn,
+      var.grafana_db_password_secret_arn,
     ]
   }
 }

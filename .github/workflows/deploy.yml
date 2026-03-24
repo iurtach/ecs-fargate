@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 env:
-  AWS_REGION:   us-east-1
-  PROJECT_NAME: llm-platform
+  AWS_REGION:   eu-north-1
+  PROJECT_NAME: ecs-fargate
 
 jobs:
   # ───────────────────────────────────────────────────────
@@ -49,7 +49,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [ollama, web, prometheus, grafana]
+        service: [ollama, web, prometheus, grafana, alertmanager]
 
     outputs:
       image-tag: ${{ steps.meta.outputs.version }}
@@ -126,41 +126,41 @@ jobs:
 
       # ── Update each service with the new image ──────────
       - name: Deploy Ollama
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
-          task-definition: ${{ env.PROJECT_NAME }}-ollama
-          service: ${{ env.PROJECT_NAME }}-ollama
-          cluster: ${{ env.PROJECT_NAME }}-cluster
+          task-definition: ${{ env.PROJECT_NAME }}-prod-ollama
+          service: ${{ env.PROJECT_NAME }}-prod-ollama
+          cluster: ${{ env.PROJECT_NAME }}-prod-cluster
           container-name: ollama
           image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/ollama:latest
           wait-for-service-stability: true
 
       - name: Deploy Web
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
-          task-definition: ${{ env.PROJECT_NAME }}-web
-          service: ${{ env.PROJECT_NAME }}-web
-          cluster: ${{ env.PROJECT_NAME }}-cluster
+          task-definition: ${{ env.PROJECT_NAME }}-prod-web
+          service: ${{ env.PROJECT_NAME }}-prod-web
+          cluster: ${{ env.PROJECT_NAME }}-prod-cluster
           container-name: web
           image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/web:latest
           wait-for-service-stability: true
 
       - name: Deploy Prometheus
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
-          task-definition: ${{ env.PROJECT_NAME }}-prometheus
-          service: ${{ env.PROJECT_NAME }}-prometheus
-          cluster: ${{ env.PROJECT_NAME }}-cluster
+          task-definition: ${{ env.PROJECT_NAME }}-prod-prometheus
+          service: ${{ env.PROJECT_NAME }}-prod-prometheus
+          cluster: ${{ env.PROJECT_NAME }}-prod-cluster
           container-name: prometheus
           image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/prometheus:latest
           wait-for-service-stability: true
 
       - name: Deploy Grafana
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
-          task-definition: ${{ env.PROJECT_NAME }}-grafana
-          service: ${{ env.PROJECT_NAME }}-grafana
-          cluster: ${{ env.PROJECT_NAME }}-cluster
+          task-definition: ${{ env.PROJECT_NAME }}-prod-grafana
+          service: ${{ env.PROJECT_NAME }}-prod-grafana
+          cluster: ${{ env.PROJECT_NAME }}-prod-cluster
           container-name: grafana
           image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/grafana:latest
           wait-for-service-stability: true
@@ -224,8 +224,9 @@ jobs:
           terraform plan -no-color -out=tfplan \
             -var="telegram_bot_token=${{ secrets.TELEGRAM_BOT_TOKEN }}" \
             -var="telegram_chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -var="db_password=${{ secrets.DB_PASSWORD }}" \
             -var="grafana_admin_password=${{ secrets.GRAFANA_ADMIN_PASSWORD }}" \
-            -var="admin_cidr=${{ secrets.ADMIN_CIDR }}" 2>&1 | tee plan.txt
+            -var="grafana_db_password=${{ secrets.GRAFANA_DB_PASSWORD }}" 2>&1 | tee plan.txt
 
       - name: Comment plan on PR
         uses: actions/github-script@v7
