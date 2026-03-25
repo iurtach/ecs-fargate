@@ -35,3 +35,11 @@ scrape_configs:
         port: 3000
         refresh_interval: 30s
     metrics_path: /grafana/metrics
+
+  - job_name: 'ollama'
+    dns_sd_configs:
+      - names: ['ollama.ecs-fargate.local']
+        type: A
+        port: 11434
+        refresh_interval: 30s
+    metrics_path: /metrics
