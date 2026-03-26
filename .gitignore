@@ -32,3 +32,8 @@ npm-debug.log*
 .vscode/
 *.swp
 *.backup
+
+# Personal learning notes (not part of the project)
+FAQ.md
+TEAM_PRACTICES.md
+"CLAUDE (1).md"
