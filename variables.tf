@@ -81,7 +81,6 @@ variable "grafana_admin_password" {
   description = "Grafana admin password — stored in Secrets Manager"
   type        = string
   sensitive   = true
-  default     = "ChangeMe123!"
 }
 
 variable "grafana_db_password" {
