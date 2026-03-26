@@ -72,7 +72,9 @@ jobs:
         with:
           context: ./docker/${{ matrix.service }}
           push: true
-          tags: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/${{ matrix.service }}:${{ env.SHORT_SHA }}
+          tags: |
+            ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/${{ matrix.service }}:${{ env.SHORT_SHA }}
+            ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/${{ matrix.service }}:latest
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to:   type=gha,mode=max,scope=${{ matrix.service }}
 
