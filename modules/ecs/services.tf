@@ -105,7 +105,7 @@ resource "aws_ecs_service" "prometheus" {
   }
 
   lifecycle {
-    ignore_changes = [task_definition]
+    ignore_changes = [desired_count]
   }
 }
 
