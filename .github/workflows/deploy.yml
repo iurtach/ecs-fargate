@@ -109,9 +109,16 @@ jobs:
           CLUSTER="${{ env.PROJECT_NAME }}-prod-cluster"
           for SERVICE in ollama web prometheus grafana; do
             echo "Deploying $SERVICE..."
+            TASK_DEF_ARN=$(aws ecs describe-task-definition \
+              --task-definition "${{ env.PROJECT_NAME }}-prod-${SERVICE}" \
+              --region ${{ env.AWS_REGION }} \
+              --query 'taskDefinition.taskDefinitionArn' \
+              --output text)
+            echo "  Using task definition: $TASK_DEF_ARN"
             aws ecs update-service \
               --cluster "$CLUSTER" \
               --service "${{ env.PROJECT_NAME }}-prod-${SERVICE}" \
+              --task-definition "$TASK_DEF_ARN" \
               --force-new-deployment \
               --region ${{ env.AWS_REGION }} \
               --no-cli-pager
