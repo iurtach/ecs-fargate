@@ -1,0 +1,230 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "tags": ["ecs-fargate", "database", "postgresql"],
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "browser",
+  "title": "Database Performance",
+  "uid": "ecs-database",
+  "version": 2,
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Connectivity",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "collapsed": false
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "PostgreSQL Up",
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 1},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background"},
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}, "1": {"text": "UP", "color": "green"}}}],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]},
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "targets": [{"expr": "pg_up", "legendFormat": "PostgreSQL", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Active Connections",
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 1},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background"},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 50}, {"color": "red", "value": 90}]},
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "targets": [{"expr": "pg_stat_activity_count{state=\"active\"}", "legendFormat": "Active", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Idle Connections",
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 1},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value"},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 20}]}
+        }
+      },
+      "targets": [{"expr": "pg_stat_activity_count{state=\"idle\"}", "legendFormat": "Idle", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Max Connections",
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 1},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value"},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {"mode": "fixed", "fixedColor": "blue"}
+        }
+      },
+      "targets": [{"expr": "pg_settings_max_connections", "legendFormat": "Max", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Connection Usage %",
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 1},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background"},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.5}, {"color": "red", "value": 0.8}]},
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "targets": [{"expr": "sum(pg_stat_activity_count) / pg_settings_max_connections", "legendFormat": "Used", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}]
+    },
+    {
+      "id": 7,
+      "type": "row",
+      "title": "Query Throughput",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
+      "collapsed": false
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Transactions per Second",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list", "placement": "bottom"}},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {"lineWidth": 2},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "targets": [
+        {"expr": "sum(rate(pg_stat_database_xact_commit_total[5m]))", "legendFormat": "Commits/sec", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}},
+        {"expr": "sum(rate(pg_stat_database_xact_rollback_total[5m]))", "legendFormat": "Rollbacks/sec", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Rows Read / Written per Second",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list", "placement": "bottom"}},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {"lineWidth": 2},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "targets": [
+        {"expr": "sum(rate(pg_stat_database_tup_fetched_total[5m]))", "legendFormat": "Fetched/sec", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}},
+        {"expr": "sum(rate(pg_stat_database_tup_inserted_total[5m]))", "legendFormat": "Inserted/sec", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}},
+        {"expr": "sum(rate(pg_stat_database_tup_updated_total[5m]))", "legendFormat": "Updated/sec", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}},
+        {"expr": "sum(rate(pg_stat_database_tup_deleted_total[5m]))", "legendFormat": "Deleted/sec", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}
+      ]
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Cache & Buffer Performance",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 14},
+      "collapsed": false
+    },
+    {
+      "id": 11,
+      "type": "gauge",
+      "title": "Cache Hit Ratio",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 15},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "minVizHeight": 75, "minVizWidth": 75},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0, "max": 1,
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 0.9}, {"color": "green", "value": 0.95}]},
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "targets": [{"expr": "sum(pg_stat_database_blks_hit_total) / (sum(pg_stat_database_blks_hit_total) + sum(pg_stat_database_blks_read_total))", "legendFormat": "Hit Ratio", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Buffer Hits vs Disk Reads",
+      "gridPos": {"h": 8, "w": 16, "x": 8, "y": 15},
+      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list", "placement": "bottom"}},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {"lineWidth": 2},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "targets": [
+        {"expr": "sum(rate(pg_stat_database_blks_hit_total[5m]))", "legendFormat": "Buffer Hits/sec", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}},
+        {"expr": "sum(rate(pg_stat_database_blks_read_total[5m]))", "legendFormat": "Disk Reads/sec", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}
+      ]
+    },
+    {
+      "id": 13,
+      "type": "row",
+      "title": "Connections Over Time",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 23},
+      "collapsed": false
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Connections by State",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24},
+      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list", "placement": "bottom"}},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {"lineWidth": 2},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "targets": [
+        {"expr": "pg_stat_activity_count{state=\"active\"}", "legendFormat": "Active", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}},
+        {"expr": "pg_stat_activity_count{state=\"idle\"}", "legendFormat": "Idle", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}},
+        {"expr": "pg_stat_activity_count{state=\"idle in transaction\"}", "legendFormat": "Idle in Tx", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}
+      ]
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "Database Sizes",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 32},
+      "collapsed": false
+    },
+    {
+      "id": 16,
+      "type": "bargauge",
+      "title": "Database Size",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 33},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "orientation": "horizontal", "displayMode": "gradient"},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1073741824}, {"color": "red", "value": 5368709120}]},
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "targets": [{"expr": "pg_database_size_bytes", "legendFormat": "{{datname}}", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}]
+    }
+  ]
+}

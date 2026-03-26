@@ -43,3 +43,13 @@ output "efs_id" {
   description = "EFS File System ID for monitoring data"
   value       = module.efs.efs_id
 }
+
+output "nat_gateway_ip" {
+  description = "Public IP of the NAT Gateway (for egress traffic from private subnets)"
+  value       = aws_eip.nat.public_ip
+}
+
+output "private_subnet_ids" {
+  description = "IDs of the created private subnets"
+  value       = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+}

@@ -98,11 +98,6 @@ data "aws_iam_policy_document" "github_actions" {
     ]
   }
 
-  statement {
-    sid       = "DynamoDBLockRead"
-    actions   = ["dynamodb:GetItem", "dynamodb:DescribeTable"]
-    resources = ["arn:aws:dynamodb:${var.aws_region}:*:table/terraform-locks"]
-  }
 }
 
 resource "aws_iam_policy" "github_actions" {

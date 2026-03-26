@@ -1,0 +1,278 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "tags": ["ecs-fargate", "health"],
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "browser",
+  "title": "Service Health & Resource Utilization",
+  "uid": "ecs-service-health",
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Service Status",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "collapsed": false
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Ollama (inferred)",
+      "description": "Ollama v0.18.2 has no native /metrics endpoint. Health is inferred: 1 = LLM success rate >0 in last 10m, 0 = no successful requests (may indicate Ollama is down).",
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 1},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "orientation": "auto", "textMode": "auto", "colorMode": "background"},
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{"type": "value", "options": {"0": {"text": "NO TRAFFIC", "color": "yellow"}, "1": {"text": "OK", "color": "green"}}}],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "yellow", "value": null}, {"color": "green", "value": 1}]},
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "targets": [{"expr": "clamp_max(sum(increase(llm_requests_total{status=\"success\"}[10m])) > bool 0, 1)", "legendFormat": "Ollama", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Web",
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 1},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background"},
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}, "1": {"text": "UP", "color": "green"}}}],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]},
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "targets": [{"expr": "up{job=\"web\"}", "legendFormat": "Web", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Grafana",
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 1},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background"},
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}, "1": {"text": "UP", "color": "green"}}}],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]},
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "targets": [{"expr": "up{job=\"grafana\"}", "legendFormat": "Grafana", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Prometheus",
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 1},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background"},
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}, "1": {"text": "UP", "color": "green"}}}],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]},
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "targets": [{"expr": "up{job=\"prometheus\"}", "legendFormat": "Prometheus", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Alertmanager",
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 1},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background"},
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}, "1": {"text": "UP", "color": "green"}}}],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]},
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "targets": [{"expr": "up{job=\"alertmanager\"}", "legendFormat": "Alertmanager", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}]
+    },
+    {
+      "id": 7,
+      "type": "row",
+      "title": "Service Availability Over Time",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
+      "collapsed": false
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Services Up/Down",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 6},
+      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list", "placement": "bottom"}},
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"lineWidth": 2},
+          "min": 0, "max": 1,
+          "mappings": [{"type": "value", "options": {"0": {"text": "DOWN"}, "1": {"text": "UP"}}}],
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "targets": [
+        {"expr": "up{job=~\"web|grafana|prometheus|alertmanager\"}", "legendFormat": "{{job}}", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}
+      ]
+    },
+    {
+      "id": 9,
+      "type": "row",
+      "title": "Request Rates",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 14},
+      "collapsed": false
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Web Requests/sec",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 15},
+      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list", "placement": "bottom"}},
+      "fieldConfig": {"defaults": {"unit": "reqps", "custom": {"lineWidth": 2}, "color": {"mode": "palette-classic"}}},
+      "targets": [
+        {"expr": "sum(rate(web_requests_total[5m])) by (status_code)", "legendFormat": "HTTP {{status_code}}", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "LLM Requests/sec",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 15},
+      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list", "placement": "bottom"}},
+      "fieldConfig": {"defaults": {"unit": "reqps", "custom": {"lineWidth": 2}, "color": {"mode": "palette-classic"}}},
+      "targets": [
+        {"expr": "sum(rate(llm_requests_total[5m])) by (status)", "legendFormat": "LLM {{status}}", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}
+      ]
+    },
+    {
+      "id": 12,
+      "type": "row",
+      "title": "Container Connections",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 23},
+      "collapsed": false
+    },
+    {
+      "id": 13,
+      "type": "gauge",
+      "title": "Web Active Connections",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 24},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "minVizHeight": 75, "minVizWidth": 75},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short", "min": 0, "max": 100,
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 50}, {"color": "red", "value": 80}]},
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "targets": [{"expr": "web_active_connections", "legendFormat": "Active", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}]
+    },
+    {
+      "id": 14,
+      "type": "stat",
+      "title": "Total Scrape Targets",
+      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 24},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 3}, {"color": "green", "value": 5}]}
+        }
+      },
+      "targets": [{"expr": "count(up)", "legendFormat": "Targets", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}]
+    },
+    {
+      "id": 15,
+      "type": "stat",
+      "title": "Healthy Targets",
+      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 28},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 3}, {"color": "green", "value": 5}]}
+        }
+      },
+      "targets": [{"expr": "count(up == 1)", "legendFormat": "Healthy", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}]
+    },
+    {
+      "id": 16,
+      "type": "row",
+      "title": "Resource Utilization",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 33},
+      "collapsed": false
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "Memory Usage (RSS) per Service",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 34},
+      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list", "placement": "bottom"}},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {"lineWidth": 2},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "targets": [
+        {"expr": "process_resident_memory_bytes{job=~\"web|grafana|prometheus\"}", "legendFormat": "{{job}}", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}},
+        {"expr": "go_memstats_sys_bytes{job=~\"prometheus\"}", "legendFormat": "prometheus (go sys)", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}
+      ]
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "CPU Usage per Service",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 34},
+      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list", "placement": "bottom"}},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {"lineWidth": 2},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "targets": [
+        {"expr": "rate(process_cpu_seconds_total{job=~\"web|grafana|prometheus\"}[5m])", "legendFormat": "{{job}}", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}
+      ]
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "Open File Descriptors per Service",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 42},
+      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list", "placement": "bottom"}},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {"lineWidth": 2},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "targets": [
+        {"expr": "process_open_fds{job=~\"web|grafana|prometheus\"}", "legendFormat": "{{job}}", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}
+      ]
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "Go Goroutines (Prometheus & Grafana)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 42},
+      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list", "placement": "bottom"}},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {"lineWidth": 2},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "targets": [
+        {"expr": "go_goroutines{job=~\"prometheus|grafana\"}", "legendFormat": "{{job}}", "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"}}
+      ]
+    }
+  ]
+}

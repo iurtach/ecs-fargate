@@ -32,11 +32,6 @@ variable "public_subnet_ids" {
   type        = list(string)
 }
 
-variable "private_subnet_ids" {
-  description = "List of private subnet IDs (2 AZs) — for ECS tasks"
-  type        = list(string)
-}
-
 # ── Admin access ──────────────────────────────────────────────
 variable "admin_cidr_blocks" {
   description = "CIDR blocks allowed to access Grafana/Prometheus via ALB"

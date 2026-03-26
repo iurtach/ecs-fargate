@@ -9,11 +9,10 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "ecs-fargate-terraform-state-745247897380"
-    key            = "prod/terraform.tfstate"
-    region         = "eu-north-1"
-    dynamodb_table = "terraform-locks"
-    encrypt        = true
+    bucket  = "ecs-fargate-terraform-state-745247897380"
+    key     = "prod/terraform.tfstate"
+    region  = "eu-north-1"
+    encrypt = true
   }
 }
 
@@ -111,7 +110,7 @@ module "efs" {
   project_name       = var.project_name
   environment        = var.environment
   vpc_id             = var.vpc_id
-  private_subnet_ids = var.private_subnet_ids
+  private_subnet_ids = [aws_subnet.private_a.id, aws_subnet.private_b.id]
   ecs_sg_id          = module.ecs.ecs_tasks_sg_id
 }
 
@@ -132,7 +131,7 @@ module "ecs" {
 
   # Networking
   vpc_id             = var.vpc_id
-  private_subnet_ids = var.private_subnet_ids
+  private_subnet_ids = [aws_subnet.private_a.id, aws_subnet.private_b.id]
   alb_sg_id          = module.alb_ecs.alb_sg_id
 
   # ALB Target Groups

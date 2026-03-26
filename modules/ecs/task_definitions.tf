@@ -147,6 +147,36 @@ resource "aws_ecs_task_definition" "prometheus" {
           "awslogs-stream-prefix" = "alertmanager"
         }
       }
+    },
+    {
+      # postgres_exporter sidecar — exposes PostgreSQL metrics on localhost:9187
+      # Prometheus scrapes it via static_config localhost:9187 (same task network)
+      name         = "postgres-exporter"
+      image        = "prometheuscommunity/postgres_exporter:v0.15.0"
+      essential    = false
+      portMappings = [{ containerPort = 9187, hostPort = 9187, protocol = "tcp" }]
+      environment = [
+        { name = "DATA_SOURCE_URI", value = "${var.db_host}:${var.db_port}/${var.db_name}?sslmode=disable" },
+        { name = "DATA_SOURCE_USER", value = var.db_username }
+      ]
+      secrets = [
+        { name = "DATA_SOURCE_PASS", valueFrom = var.db_password_secret_arn }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = var.log_group_name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "postgres-exporter"
+        }
+      }
+      healthCheck = {
+        command     = ["CMD-SHELL", "wget -qO- http://localhost:9187/metrics | grep -q 'pg_up' || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 30
+      }
     }
   ])
 
