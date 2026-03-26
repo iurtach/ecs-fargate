@@ -63,6 +63,24 @@ resource "aws_efs_access_point" "grafana" {
   tags = { Name = "${var.project_name}-grafana-ap" }
 }
 
+# ─── Access Point: PostgreSQL data ───────────────────────
+# No posix_user block — the postgres container entrypoint runs as root,
+# chowns the data directory to postgres user (UID 999 on Debian), then
+# drops privileges. Enforcing a posix_user here blocks that chown.
+resource "aws_efs_access_point" "postgres" {
+  file_system_id = aws_efs_file_system.monitoring.id
+
+  root_directory {
+    path = "/postgres"
+    creation_info {
+      owner_gid   = 999 # postgres user in pgvector/pgvector:pg15 (Debian)
+      owner_uid   = 999
+      permissions = "755"
+    }
+  }
+  tags = { Name = "${var.project_name}-postgres-ap" }
+}
+
 # ─── Backup Policy ───────────────────────────────────────
 resource "aws_efs_backup_policy" "monitoring" {
   file_system_id = aws_efs_file_system.monitoring.id

@@ -7,6 +7,7 @@ on:
 env:
   AWS_REGION:   eu-north-1
   PROJECT_NAME: ecs-fargate
+  CLUSTER:      ecs-fargate-prod-cluster
 
 jobs:
   # ───────────────────────────────────────────────────────
@@ -35,6 +36,8 @@ jobs:
 
   # ───────────────────────────────────────────────────────
   # 2. Build & push Docker images to ECR
+  #    Each image is tagged only with the git SHA (7 chars).
+  #    No :latest — so every image is traceable to a commit.
   # ───────────────────────────────────────────────────────
   build-and-push:
     name: Build & Push Images
@@ -42,10 +45,11 @@ jobs:
     needs: test
     permissions:
       contents: read
+      id-token: write   # needed for OIDC auth
 
     strategy:
       matrix:
-        service: [ollama, web, prometheus, grafana, alertmanager]
+        service: [ollama, web, prometheus, grafana, alertmanager, postgres]
 
     steps:
       - uses: actions/checkout@v4
@@ -67,14 +71,16 @@ jobs:
       - name: Set short SHA
         run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
+      # Push only the SHA tag — no :latest
+      # provenance: false — prevents Docker Buildx from creating an extra
+      # untagged 0.01 MB attestation blob alongside every image in ECR.
       - name: Build & push ${{ matrix.service }}
         uses: docker/build-push-action@v5
         with:
           context: ./docker/${{ matrix.service }}
           push: true
-          tags: |
-            ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/${{ matrix.service }}:${{ env.SHORT_SHA }}
-            ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/${{ matrix.service }}:latest
+          provenance: false
+          tags: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/${{ matrix.service }}:${{ env.SHORT_SHA }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to:   type=gha,mode=max,scope=${{ matrix.service }}
 
@@ -83,11 +89,21 @@ jobs:
         with:
           image-ref: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/${{ matrix.service }}:${{ env.SHORT_SHA }}
           format: table
-          exit-code: '0'           # warn only (set to '1' to fail on CRITICAL)
+          exit-code: '0'
           severity: CRITICAL,HIGH
 
   # ───────────────────────────────────────────────────────
   # 3. Deploy updated services to ECS
+  #
+  #    For each service we:
+  #      a) Download the current task definition from AWS
+  #      b) Swap the image tag to the new SHA (render step)
+  #      c) Register the updated task definition as a new revision
+  #      d) Update the ECS service to use that new revision
+  #
+  #    This is the correct pattern: the task definition always
+  #    stores the exact image SHA that is running, giving full
+  #    traceability between a git commit and what is deployed.
   # ───────────────────────────────────────────────────────
   deploy:
     name: Deploy to ECS
@@ -104,26 +120,131 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Force new deployment for all services
-        run: |
-          CLUSTER="${{ env.PROJECT_NAME }}-prod-cluster"
-          for SERVICE in ollama web prometheus grafana; do
-            echo "Deploying $SERVICE..."
-            TASK_DEF_ARN=$(aws ecs describe-task-definition \
-              --task-definition "${{ env.PROJECT_NAME }}-prod-${SERVICE}" \
-              --region ${{ env.AWS_REGION }} \
-              --query 'taskDefinition.taskDefinitionArn' \
-              --output text)
-            echo "  Using task definition: $TASK_DEF_ARN"
-            aws ecs update-service \
-              --cluster "$CLUSTER" \
-              --service "${{ env.PROJECT_NAME }}-prod-${SERVICE}" \
-              --task-definition "$TASK_DEF_ARN" \
-              --force-new-deployment \
-              --region ${{ env.AWS_REGION }} \
-              --no-cli-pager
-          done
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Set short SHA
+        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+      # ── Ollama ──────────────────────────────────────────
+      - name: Download ollama task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.PROJECT_NAME }}-prod-ollama \
+            --query taskDefinition > ollama-task-def.json
+
+      - name: Update ollama image tag in task definition
+        id: render-ollama
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ollama-task-def.json
+          container-name: ollama
+          image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/ollama:${{ env.SHORT_SHA }}
+
+      - name: Deploy ollama service
+        uses: aws-actions/amazon-ecs-deploy-task-def@v2
+        with:
+          task-definition: ${{ steps.render-ollama.outputs.task-definition }}
+          service: ${{ env.PROJECT_NAME }}-prod-ollama
+          cluster: ${{ env.CLUSTER }}
+
+      # ── Web ─────────────────────────────────────────────
+      - name: Download web task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.PROJECT_NAME }}-prod-web \
+            --query taskDefinition > web-task-def.json
+
+      - name: Update web image tag in task definition
+        id: render-web
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: web-task-def.json
+          container-name: web
+          image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/web:${{ env.SHORT_SHA }}
+
+      - name: Deploy web service
+        uses: aws-actions/amazon-ecs-deploy-task-def@v2
+        with:
+          task-definition: ${{ steps.render-web.outputs.task-definition }}
+          service: ${{ env.PROJECT_NAME }}-prod-web
+          cluster: ${{ env.CLUSTER }}
+
+      # ── Prometheus ──────────────────────────────────────
+      # The prometheus task has two custom images: prometheus + alertmanager.
+      # We run render twice, chaining the output of the first into the second.
+      - name: Download prometheus task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.PROJECT_NAME }}-prod-prometheus \
+            --query taskDefinition > prometheus-task-def.json
+
+      - name: Update prometheus image tag in task definition
+        id: render-prometheus
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: prometheus-task-def.json
+          container-name: prometheus
+          image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/prometheus:${{ env.SHORT_SHA }}
+
+      - name: Update alertmanager image tag in task definition
+        id: render-alertmanager
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-prometheus.outputs.task-definition }}
+          container-name: alertmanager
+          image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/alertmanager:${{ env.SHORT_SHA }}
+
+      - name: Deploy prometheus service
+        uses: aws-actions/amazon-ecs-deploy-task-def@v2
+        with:
+          task-definition: ${{ steps.render-alertmanager.outputs.task-definition }}
+          service: ${{ env.PROJECT_NAME }}-prod-prometheus
+          cluster: ${{ env.CLUSTER }}
+
+      # ── Grafana ─────────────────────────────────────────
+      - name: Download grafana task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.PROJECT_NAME }}-prod-grafana \
+            --query taskDefinition > grafana-task-def.json
+
+      - name: Update grafana image tag in task definition
+        id: render-grafana
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: grafana-task-def.json
+          container-name: grafana
+          image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/grafana:${{ env.SHORT_SHA }}
+
+      - name: Deploy grafana service
+        uses: aws-actions/amazon-ecs-deploy-task-def@v2
+        with:
+          task-definition: ${{ steps.render-grafana.outputs.task-definition }}
+          service: ${{ env.PROJECT_NAME }}-prod-grafana
+          cluster: ${{ env.CLUSTER }}
+
+      # ── Postgres ────────────────────────────────────────
+      - name: Download postgres task definition
+        run: aws ecs describe-task-definition --task-definition ${{ env.PROJECT_NAME }}-prod-postgres --query taskDefinition > postgres-task-def.json
+
+      - name: Update postgres image tag in task definition
+        id: render-postgres
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: postgres-task-def.json
+          container-name: postgres
+          image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/postgres:${{ env.SHORT_SHA }}
+
+      - name: Deploy postgres service
+        uses: aws-actions/amazon-ecs-deploy-task-def@v2
+        with:
+          task-definition: ${{ steps.render-postgres.outputs.task-definition }}
+          service: ${{ env.PROJECT_NAME }}-prod-postgres
+          cluster: ${{ env.CLUSTER }}
+
+      # ── Notifications ───────────────────────────────────
       - name: Notify Telegram on success
         if: success()
         run: |

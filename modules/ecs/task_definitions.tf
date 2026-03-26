@@ -54,7 +54,7 @@ resource "aws_ecs_task_definition" "web" {
     portMappings = [{ containerPort = 8080, hostPort = 8080, protocol = "tcp" }]
     environment = [
       { name = "OLLAMA_API_URL", value = "http://ollama.${var.service_discovery_namespace_name}:11434" },
-      { name = "DB_HOST", value = var.db_host },
+      { name = "DB_HOST", value = "postgres.${var.service_discovery_namespace_name}" },
       { name = "DB_PORT", value = tostring(var.db_port) },
       { name = "DB_NAME", value = var.db_name },
       { name = "DB_USER", value = var.db_username },
@@ -109,7 +109,7 @@ resource "aws_ecs_task_definition" "prometheus" {
         { name = "OLLAMA_HOST", value = "ollama.${var.service_discovery_namespace_name}" },
         { name = "WEB_HOST", value = "web.${var.service_discovery_namespace_name}" },
         { name = "GRAFANA_HOST", value = "grafana.${var.service_discovery_namespace_name}" },
-        { name = "DB_HOST", value = var.db_host }
+        { name = "DB_HOST", value = "postgres.${var.service_discovery_namespace_name}" }
       ]
       mountPoints = [{
         sourceVolume  = "prometheus-data"
@@ -168,11 +168,11 @@ resource "aws_ecs_task_definition" "prometheus" {
       # postgres_exporter sidecar — exposes PostgreSQL metrics on localhost:9187
       # Prometheus scrapes it via static_config localhost:9187 (same task network)
       name         = "postgres-exporter"
-      image        = "prometheuscommunity/postgres_exporter:v0.15.0"
+      image        = "${var.postgres_exporter_repository_url}:v0.15.0"
       essential    = false
       portMappings = [{ containerPort = 9187, hostPort = 9187, protocol = "tcp" }]
       environment = [
-        { name = "DATA_SOURCE_URI", value = "${var.db_host}:${var.db_port}/${var.db_name}?sslmode=disable" },
+        { name = "DATA_SOURCE_URI", value = "postgres.${var.service_discovery_namespace_name}:${var.db_port}/${var.db_name}?sslmode=disable" },
         { name = "DATA_SOURCE_USER", value = var.db_username }
       ]
       secrets = [
@@ -273,4 +273,66 @@ resource "aws_ecs_task_definition" "grafana" {
   }
 
   tags = { Service = "grafana" }
+}
+
+# ── PostgreSQL Task Definition ────────────────────────────
+resource "aws_ecs_task_definition" "postgres" {
+  family                   = "${var.project_name}-${var.environment}-postgres"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 512
+  memory                   = 1024
+  execution_role_arn       = var.task_execution_role_arn
+  task_role_arn            = var.postgres_task_role_arn
+
+  container_definitions = jsonencode([{
+    name         = "postgres"
+    image        = "${var.postgres_repository_url}:latest"
+    essential    = true
+    portMappings = [{ containerPort = 5432, hostPort = 5432, protocol = "tcp" }]
+    environment = [
+      { name = "POSTGRES_DB", value = var.db_name },
+      { name = "POSTGRES_USER", value = var.db_username },
+      # PGDATA must point to a subdirectory inside the EFS mount.
+      # PostgreSQL refuses to start if the data directory root is owned by root,
+      # which happens when EFS creates a fresh directory. The subdirectory is
+      # created by the container itself with the correct ownership.
+      { name = "PGDATA", value = "/var/lib/postgresql/data/pgdata" }
+    ]
+    secrets = [{ name = "POSTGRES_PASSWORD", valueFrom = var.db_password_secret_arn }]
+    mountPoints = [{
+      sourceVolume  = "postgres-data"
+      containerPath = "/var/lib/postgresql/data"
+      readOnly      = false
+    }]
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = var.log_group_name
+        "awslogs-region"        = var.aws_region
+        "awslogs-stream-prefix" = "postgres"
+      }
+    }
+    healthCheck = {
+      command     = ["CMD-SHELL", "pg_isready -U ${var.db_username} -d ${var.db_name} || exit 1"]
+      interval    = 30
+      timeout     = 5
+      retries     = 3
+      startPeriod = 60
+    }
+  }])
+
+  volume {
+    name = "postgres-data"
+    efs_volume_configuration {
+      file_system_id     = var.postgres_efs_id
+      transit_encryption = "ENABLED"
+      authorization_config {
+        access_point_id = var.postgres_efs_access_point_id
+        iam             = "ENABLED"
+      }
+    }
+  }
+
+  tags = { Service = "postgres" }
 }

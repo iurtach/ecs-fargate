@@ -149,7 +149,9 @@ module "ecs" {
   web_repository_url          = module.ecr.web_repository_url
   prometheus_repository_url   = module.ecr.prometheus_repository_url
   grafana_repository_url      = module.ecr.grafana_repository_url
-  alertmanager_repository_url = module.ecr.alertmanager_repository_url
+  alertmanager_repository_url      = module.ecr.alertmanager_repository_url
+  postgres_exporter_repository_url = module.ecr.postgres_exporter_repository_url
+  postgres_repository_url          = module.ecr.postgres_repository_url
 
   # Image tags
   ollama_image_tag       = var.ollama_image_tag
@@ -163,12 +165,15 @@ module "ecs" {
   ollama_task_role_arn     = module.iam_ecs.ollama_task_role_arn
   web_task_role_arn        = module.iam_ecs.web_task_role_arn
   monitoring_task_role_arn = module.iam_ecs.monitoring_task_role_arn
+  postgres_task_role_arn   = module.iam_ecs.postgres_task_role_arn
 
   # EFS
   prometheus_efs_id              = module.efs.prometheus_efs_id
   prometheus_efs_access_point_id = module.efs.prometheus_access_point_id
   grafana_efs_id                 = module.efs.grafana_efs_id
   grafana_efs_access_point_id    = module.efs.grafana_access_point_id
+  postgres_efs_id                = module.efs.postgres_efs_id
+  postgres_efs_access_point_id   = module.efs.postgres_access_point_id
 
   # Resource sizing
   ollama_cpu        = var.ollama_cpu
@@ -181,7 +186,6 @@ module "ecs" {
   grafana_memory    = var.grafana_memory
 
   # Database
-  db_host                = var.db_host
   db_port                = var.db_port
   db_name                = var.db_name
   db_username            = var.db_username
@@ -213,13 +217,5 @@ module "autoscaling" {
   web_max_capacity    = var.web_max_capacity
 }
 
-# ── Allow ECS tasks to reach the existing PostgreSQL ──────────
-resource "aws_security_group_rule" "ecs_to_db" {
-  type                     = "ingress"
-  from_port                = var.db_port
-  to_port                  = var.db_port
-  protocol                 = "tcp"
-  source_security_group_id = module.ecs.ecs_tasks_sg_id
-  security_group_id        = var.db_security_group_id
-  description              = "Allow ECS tasks to connect to PostgreSQL"
-}
+# PostgreSQL runs inside ECS — inter-task communication is already
+# allowed by the self-referencing rule in the ecs_tasks security group.

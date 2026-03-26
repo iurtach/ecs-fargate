@@ -12,3 +12,5 @@ output "web_image_uri" { value = "${aws_ecr_repository.services["web"].repositor
 output "prometheus_image_uri" { value = "${aws_ecr_repository.services["prometheus"].repository_url}:latest" }
 output "grafana_image_uri" { value = "${aws_ecr_repository.services["grafana"].repository_url}:latest" }
 output "alertmanager_repository_url" { value = aws_ecr_repository.services["alertmanager"].repository_url }
+output "postgres_exporter_repository_url" { value = aws_ecr_repository.services["postgres-exporter"].repository_url }
+output "postgres_repository_url" { value = aws_ecr_repository.services["postgres"].repository_url }

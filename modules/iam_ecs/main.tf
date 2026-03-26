@@ -155,3 +155,26 @@ resource "aws_iam_role_policy_attachment" "monitoring_task" {
   role       = aws_iam_role.monitoring_task.name
   policy_arn = aws_iam_policy.monitoring_task.arn
 }
+
+# ── PostgreSQL Task Role ──────────────────────────────────
+resource "aws_iam_role" "postgres_task" {
+  name               = "${var.project_name}-${var.environment}-postgres-task-role"
+  assume_role_policy = data.aws_iam_policy_document.ecs_task_assume.json
+}
+
+resource "aws_iam_policy" "postgres_task" {
+  name = "${var.project_name}-${var.environment}-postgres-task"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
+      Resource = ["${var.log_group_arn}:*"]
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "postgres_task" {
+  role       = aws_iam_role.postgres_task.name
+  policy_arn = aws_iam_policy.postgres_task.arn
+}

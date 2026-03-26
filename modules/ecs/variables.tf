@@ -19,6 +19,8 @@ variable "web_repository_url" { type = string }
 variable "prometheus_repository_url" { type = string }
 variable "grafana_repository_url" { type = string }
 variable "alertmanager_repository_url" { type = string }
+variable "postgres_exporter_repository_url" { type = string }
+variable "postgres_repository_url" { type = string }
 
 variable "ollama_image_tag" {
   type    = string
@@ -45,11 +47,14 @@ variable "task_execution_role_arn" { type = string }
 variable "ollama_task_role_arn" { type = string }
 variable "web_task_role_arn" { type = string }
 variable "monitoring_task_role_arn" { type = string }
+variable "postgres_task_role_arn" { type = string }
 
 variable "prometheus_efs_id" { type = string }
 variable "prometheus_efs_access_point_id" { type = string }
 variable "grafana_efs_id" { type = string }
 variable "grafana_efs_access_point_id" { type = string }
+variable "postgres_efs_id" { type = string }
+variable "postgres_efs_access_point_id" { type = string }
 
 variable "ollama_cpu" {
   type    = number
@@ -84,7 +89,6 @@ variable "grafana_memory" {
   default = 1024
 }
 
-variable "db_host" { type = string }
 variable "db_port" { type = number }
 variable "db_name" { type = string }
 variable "db_username" { type = string }

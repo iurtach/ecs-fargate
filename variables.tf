@@ -39,12 +39,7 @@ variable "admin_cidr_blocks" {
   default     = ["0.0.0.0/0"]
 }
 
-# ── Existing PostgreSQL ───────────────────────────────────────
-variable "db_host" {
-  description = "Existing PostgreSQL host (private IP or DNS)"
-  type        = string
-}
-
+# ── PostgreSQL (runs on ECS Fargate, credentials only) ───────
 variable "db_port" {
   description = "PostgreSQL port"
   type        = number
@@ -67,11 +62,6 @@ variable "db_password" {
   description = "PostgreSQL password — stored in Secrets Manager"
   type        = string
   sensitive   = true
-}
-
-variable "db_security_group_id" {
-  description = "Security group ID of the existing PostgreSQL instance"
-  type        = string
 }
 
 # ── Telegram ──────────────────────────────────────────────────

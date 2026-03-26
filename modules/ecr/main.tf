@@ -1,5 +1,5 @@
 locals {
-  services = ["ollama", "web", "prometheus", "grafana", "alertmanager"]
+  services = ["ollama", "web", "prometheus", "grafana", "alertmanager", "postgres-exporter", "postgres"]
 }
 
 resource "aws_ecr_repository" "services" {
