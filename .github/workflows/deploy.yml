@@ -143,7 +143,7 @@ jobs:
           image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/ollama:${{ env.SHORT_SHA }}
 
       - name: Deploy ollama service
-        uses: aws-actions/amazon-ecs-deploy-task-def@v2
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.render-ollama.outputs.task-definition }}
           service: ${{ env.PROJECT_NAME }}-prod-ollama
@@ -165,7 +165,7 @@ jobs:
           image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/web:${{ env.SHORT_SHA }}
 
       - name: Deploy web service
-        uses: aws-actions/amazon-ecs-deploy-task-def@v2
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.render-web.outputs.task-definition }}
           service: ${{ env.PROJECT_NAME }}-prod-web
@@ -197,7 +197,7 @@ jobs:
           image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/alertmanager:${{ env.SHORT_SHA }}
 
       - name: Deploy prometheus service
-        uses: aws-actions/amazon-ecs-deploy-task-def@v2
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.render-alertmanager.outputs.task-definition }}
           service: ${{ env.PROJECT_NAME }}-prod-prometheus
@@ -219,7 +219,7 @@ jobs:
           image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/grafana:${{ env.SHORT_SHA }}
 
       - name: Deploy grafana service
-        uses: aws-actions/amazon-ecs-deploy-task-def@v2
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.render-grafana.outputs.task-definition }}
           service: ${{ env.PROJECT_NAME }}-prod-grafana
@@ -238,7 +238,7 @@ jobs:
           image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/postgres:${{ env.SHORT_SHA }}
 
       - name: Deploy postgres service
-        uses: aws-actions/amazon-ecs-deploy-task-def@v2
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.render-postgres.outputs.task-definition }}
           service: ${{ env.PROJECT_NAME }}-prod-postgres
