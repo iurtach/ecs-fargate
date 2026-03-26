@@ -149,6 +149,22 @@ resource "aws_ecs_task_definition" "prometheus" {
       }
     },
     {
+      # blackbox_exporter sidecar — probes HTTP endpoints (e.g. Ollama /api/version)
+      # Prometheus scrapes it at localhost:9115 with ?target=<url>&module=http_2xx
+      name         = "blackbox-exporter"
+      image        = "prom/blackbox-exporter:v0.25.0"
+      essential    = false
+      portMappings = [{ containerPort = 9115, hostPort = 9115, protocol = "tcp" }]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = var.log_group_name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "blackbox-exporter"
+        }
+      }
+    },
+    {
       # postgres_exporter sidecar — exposes PostgreSQL metrics on localhost:9187
       # Prometheus scrapes it via static_config localhost:9187 (same task network)
       name         = "postgres-exporter"
