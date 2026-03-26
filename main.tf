@@ -145,10 +145,10 @@ module "ecs" {
   service_discovery_namespace_name = aws_service_discovery_private_dns_namespace.this.name
 
   # ECR image URLs
-  ollama_repository_url       = module.ecr.ollama_repository_url
-  web_repository_url          = module.ecr.web_repository_url
-  prometheus_repository_url   = module.ecr.prometheus_repository_url
-  grafana_repository_url      = module.ecr.grafana_repository_url
+  ollama_repository_url            = module.ecr.ollama_repository_url
+  web_repository_url               = module.ecr.web_repository_url
+  prometheus_repository_url        = module.ecr.prometheus_repository_url
+  grafana_repository_url           = module.ecr.grafana_repository_url
   alertmanager_repository_url      = module.ecr.alertmanager_repository_url
   postgres_exporter_repository_url = module.ecr.postgres_exporter_repository_url
   postgres_repository_url          = module.ecr.postgres_repository_url
