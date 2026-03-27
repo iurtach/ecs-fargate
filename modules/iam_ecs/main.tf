@@ -80,6 +80,12 @@ data "aws_iam_policy_document" "ollama_task" {
       values   = ["${var.project_name}/Ollama"]
     }
   }
+
+  statement {
+    sid      = "ECSExec"
+    actions  = ["ssmmessages:CreateControlChannel", "ssmmessages:CreateDataChannel", "ssmmessages:OpenControlChannel", "ssmmessages:OpenDataChannel"]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_policy" "ollama_task" {
@@ -102,11 +108,18 @@ resource "aws_iam_policy" "web_task" {
   name = "${var.project_name}-${var.environment}-web-task"
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
-      Resource = ["${var.log_group_arn}:*"]
-    }]
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = ["${var.log_group_arn}:*"]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["ssmmessages:CreateControlChannel", "ssmmessages:CreateDataChannel", "ssmmessages:OpenControlChannel", "ssmmessages:OpenDataChannel"]
+        Resource = ["*"]
+      }
+    ]
   })
 }
 
@@ -144,6 +157,17 @@ data "aws_iam_policy_document" "monitoring_task" {
     ]
     resources = ["*"]
   }
+
+  statement {
+    sid = "ECSExec"
+    actions = [
+      "ssmmessages:CreateControlChannel",
+      "ssmmessages:CreateDataChannel",
+      "ssmmessages:OpenControlChannel",
+      "ssmmessages:OpenDataChannel",
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_policy" "monitoring_task" {
@@ -166,11 +190,24 @@ resource "aws_iam_policy" "postgres_task" {
   name = "${var.project_name}-${var.environment}-postgres-task"
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
-      Resource = ["${var.log_group_arn}:*"]
-    }]
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = ["${var.log_group_arn}:*"]
+      },
+      {
+        # Required for ECS Exec (aws ecs execute-command)
+        Effect = "Allow"
+        Action = [
+          "ssmmessages:CreateControlChannel",
+          "ssmmessages:CreateDataChannel",
+          "ssmmessages:OpenControlChannel",
+          "ssmmessages:OpenDataChannel"
+        ]
+        Resource = ["*"]
+      }
+    ]
   })
 }
 
