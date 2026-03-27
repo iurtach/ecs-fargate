@@ -82,8 +82,8 @@ data "aws_iam_policy_document" "ollama_task" {
   }
 
   statement {
-    sid      = "ECSExec"
-    actions  = ["ssmmessages:CreateControlChannel", "ssmmessages:CreateDataChannel", "ssmmessages:OpenControlChannel", "ssmmessages:OpenDataChannel"]
+    sid       = "ECSExec"
+    actions   = ["ssmmessages:CreateControlChannel", "ssmmessages:CreateDataChannel", "ssmmessages:OpenControlChannel", "ssmmessages:OpenDataChannel"]
     resources = ["*"]
   }
 }
